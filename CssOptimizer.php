@@ -74,13 +74,12 @@ class CssOptimizer
                 . " --info"
                 . " --rejected 2>&1 1> /dev/null";
 
-            var_dump($command);
             echo "<br><br>";
-            /*            $output = shell_exec($command);
+                        $output = shell_exec($command);
                         echo "<h2>" . $css_key . "</h2>";
                         echo "This css file was used in: <br>" . implode("<br>", $css_data["pages"]["real_names"]);
                         echo "<br><a href='" . "/tmp/" . $css_local_name . "' download>Download optimized</a><br><br>";
-                        echo substr($output, $trimInfoLen) . "<br><br>";*/
+                        echo substr($output, $trimInfoLen) . "<br><br>";
         }
         die();
     }
@@ -117,7 +116,8 @@ class CssOptimizer
         if (substr($css_path, 0, 4) == "http")
             return $css_path;
 
-        return $page_path . "/" . $css_path;
+        return parse_url($page_path, PHP_URL_SCHEME) . "://" .
+        parse_url($page_path, PHP_URL_HOST) . '/' . $css_path;
     }
 
     /**
