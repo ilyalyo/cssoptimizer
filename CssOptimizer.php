@@ -3,6 +3,8 @@
 class CssOptimizer
 {
     const TMP_DIR = __DIR__ . "/tmp/";
+    const DOWNLOAD_DIR = __DIR__ . "/tmp/download/";
+
     private $content;
 
     /**
@@ -12,7 +14,8 @@ class CssOptimizer
     public function __construct($content)
     {
         $this->content = $content;
-        self::removeFilesInTMP();
+        self::removeTMPFiles(self::TMP_DIR);
+        self::rrmdir(self::DOWNLOAD_DIR);
     }
 
     /**
@@ -26,6 +29,8 @@ class CssOptimizer
             throw new Exception("empty file exception");
         if (!is_writable(self::TMP_DIR))
             throw new Exception(self::TMP_DIR . " should be writable");
+        if (!is_writable(self::DOWNLOAD_DIR))
+            throw new Exception(self::DOWNLOAD_DIR . " should be writable");
 
         $usedCssArray = [];
         $usedJsArray = [];
@@ -67,21 +72,46 @@ class CssOptimizer
             $css_tmp_name = self::TMP_DIR . "tmp.css";
             $css_local_name = $this->getValidFileName(basename($css_key));
             file_put_contents($css_tmp_name, $css_content);
+            
             $command = "purifycss " . $css_tmp_name
                 . " " . implode(" ", $css_data["pages"]["local_names"])
                 . " " . implode(" ", $css_data["js"])
                 . " --out " . self::TMP_DIR . $css_local_name
                 . " --info"
                 . " --rejected 2>&1 1> /dev/null";
-
+            $output = shell_exec($command);
+            $this->addFile($css_data["path"],  self::TMP_DIR .$css_local_name);
             echo "<br><br>";
-                        $output = shell_exec($command);
                         echo "<h2>" . $css_key . "</h2>";
                         echo "This css file was used in: <br>" . implode("<br>", $css_data["pages"]["real_names"]);
                         echo "<br><a href='" . "/tmp/" . $css_local_name . "' download>Download optimized</a><br><br>";
                         echo substr($output, $trimInfoLen) . "<br><br>";
         }
+        try
+        {
+            $a = new PharData(self::TMP_DIR. 'download.tar');
+            $a->buildFromDirectory(self::DOWNLOAD_DIR);
+            $a->compress(Phar::GZ);
+        }
+        catch (Exception $e)
+        {
+            echo "Exception : " . $e;
+        }
+        echo "<a style='position: fixed;top: 40px;right: 40px;' href='/tmp/download.tar' download>Download All</a>";
         die();
+    }
+
+    /**
+     * @param $css_path
+     * @param $css_local_name
+     */
+    private function addFile($css_path, $css_local_name){
+        $filename = basename($css_path);
+        $path_with_filename = self::DOWNLOAD_DIR . parse_url($css_path, PHP_URL_PATH);
+        $path = substr($path_with_filename, 0, strlen($path_with_filename) - strlen($filename));
+        if (!file_exists($path))
+            mkdir($path, 0777, true);
+        copy($css_local_name, $path_with_filename);
     }
 
     private function getValidFileName($filename)
@@ -91,12 +121,28 @@ class CssOptimizer
         return $filename;
     }
 
-    private static function removeFilesInTMP()
+    private static function removeTMPFiles($path)
     {
-        $files = glob(self::TMP_DIR . "*");
+        $files = glob($path . "*");
         foreach ($files as $file)
             if (is_file($file))
                 unlink($file);
+    }
+    
+    private static function rrmdir($dir) {
+        if (is_dir($dir)) {
+            $objects = scandir($dir);
+            foreach ($objects as $object) {
+                if ($object != "." && $object != "..") {
+                    if (filetype($dir."/".$object) == "dir")
+                        self::rrmdir($dir."/".$object);
+                    else unlink   ($dir."/".$object);
+                }
+            }
+            reset($objects);
+            if ($dir != self::DOWNLOAD_DIR)
+                rmdir($dir);
+        }
     }
 
     /**
