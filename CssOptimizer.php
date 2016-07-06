@@ -73,18 +73,18 @@ class CssOptimizer
             $css_local_name = $this->getValidFileName(basename($css_key));
             file_put_contents($css_tmp_name, $css_content);
             
-            $command = "purifycss " . $css_tmp_name
-                . " " . implode(" ", $css_data["pages"]["local_names"])
-                . " " . implode(" ", $css_data["js"])
-                . " --out " . self::TMP_DIR . $css_local_name
-                . " --info"
+            $command = "purifycss '" . $css_tmp_name
+                . "' '" . implode("' '", $css_data["pages"]["local_names"])
+                . "' '" . implode("' '", $css_data["js"])
+                . "' --out '" . self::TMP_DIR . $css_local_name
+                . "' --info"
                 . " --rejected 2>&1 1> /dev/null";
             $output = shell_exec($command);
-            $this->addFile($css_data["path"],  self::TMP_DIR .$css_local_name);
+            $this->addFile($css_data["path"],  self::TMP_DIR .$css_local_name, $css_tmp_name);
             echo "<br><br>";
                         echo "<h2>" . $css_key . "</h2>";
                         echo "This css file was used in: <br>" . implode("<br>", $css_data["pages"]["real_names"]);
-                        echo "<br><a href='" . "/tmp/" . $css_local_name . "' download>Download optimized</a><br><br>";
+                        echo "<br><a href='" . "tmp/" . $css_local_name . "' download>Download optimized</a><br><br>";
                         echo substr($output, $trimInfoLen) . "<br><br>";
         }
         try
@@ -104,14 +104,16 @@ class CssOptimizer
     /**
      * @param $css_path
      * @param $css_local_name
+     * @param $css_original
      */
-    private function addFile($css_path, $css_local_name){
+    private function addFile($css_path, $css_local_name, $css_original){
         $filename = basename($css_path);
         $path_with_filename = self::DOWNLOAD_DIR . parse_url($css_path, PHP_URL_PATH);
         $path = substr($path_with_filename, 0, strlen($path_with_filename) - strlen($filename));
         if (!file_exists($path))
             mkdir($path, 0777, true);
         copy($css_local_name, $path_with_filename);
+        copy($css_original, $path . "ORIGINAL " .$filename);
     }
 
     private function getValidFileName($filename)
