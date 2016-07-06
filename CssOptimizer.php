@@ -97,7 +97,7 @@ class CssOptimizer
         {
             echo "Exception : " . $e;
         }
-        echo "<a style='position: fixed;top: 40px;right: 40px;' href='/tmp/download.tar' download>Download All</a>";
+        echo "<a style='position: fixed;top: 40px;right: 40px;' href='tmp/download.tar' download>Download All</a>";
         die();
     }
 
